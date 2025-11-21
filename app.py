@@ -4,12 +4,11 @@ import numpy as np
 from PIL import Image
 
 # ---------- CONFIG ----------
-WEIGHTS_PATH = "voter_id.weights.h5"   # must match the file in your GitHub repo
+WEIGHTS_PATH = "voter_id_weights.h5"  # ensure this file is in the repo
 IMG_SIZE = (224, 224)
 
-# ---------- MODEL ARCHITECTURE (SAME AS COLAB) ----------
+# ---------- MODEL ARCHITECTURE (must match Colab) ----------
 def build_model():
-    # Data augmentation
     data_augmentation = tf.keras.Sequential(
         [
             tf.keras.layers.RandomFlip("horizontal"),
@@ -19,15 +18,13 @@ def build_model():
         name="data_augmentation",
     )
 
-    # Base model (MobileNetV2)
     base_model = tf.keras.applications.MobileNetV2(
         input_shape=IMG_SIZE + (3,),
         include_top=False,
         weights="imagenet"
     )
-    base_model.trainable = False  # Freeze base layers
+    base_model.trainable = False
 
-    # Build full model
     inputs = tf.keras.Input(shape=IMG_SIZE + (3,))
     x = data_augmentation(inputs)
     x = tf.keras.applications.mobilenet_v2.preprocess_input(x)
@@ -37,7 +34,7 @@ def build_model():
     outputs = tf.keras.layers.Dense(1, activation="sigmoid")(x)  # Binary classification
 
     model = tf.keras.Model(inputs, outputs)
-    model.load_weights(WEIGHTS_PATH)  # Load weights saved from Colab
+    model.load_weights(WEIGHTS_PATH)  # Load weights
     return model
 
 @st.cache_resource
@@ -46,7 +43,7 @@ def load_model():
 
 model = load_model()
 
-# ---------- IMAGE PREPROCESSING ----------
+# ---------- PREPROCESS IMAGE ----------
 def preprocess_image(img: Image.Image):
     img = img.convert("RGB")
     img = img.resize(IMG_SIZE)
@@ -54,13 +51,11 @@ def preprocess_image(img: Image.Image):
     arr = tf.keras.applications.mobilenet_v2.preprocess_input(arr)
     return np.expand_dims(arr, axis=0)
 
-# ---------- STREAMLIT USER INTERFACE ----------
+# ---------- STREAMLIT UI ----------
 st.set_page_config(page_title="Ghana Voter ID Detector", page_icon="🪪")
 st.title("🇬🇭 Ghana Voter ID Detector")
 
-st.write("""
-Upload any image and the model will predict whether it is a **Ghana Voter ID card** or **Not a Voter ID**.
-""")
+st.write("Upload any image and the model will check if it is a **Ghana Voter ID** or not.")
 
 uploaded_file = st.file_uploader("Upload image", type=["jpg", "jpeg", "png"])
 
@@ -70,7 +65,7 @@ if uploaded_file is not None:
 
     if st.button("Check Image"):
         x = preprocess_image(image)
-        prob = float(model.predict(x)[0][0])  # 0–1
+        prob = float(model.predict(x)[0][0])  # between 0 and 1
 
         st.write(f"**Probability of being a Voter ID:** `{prob:.2%}`")
 
