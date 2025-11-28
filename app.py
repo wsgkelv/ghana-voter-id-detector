@@ -62,3 +62,35 @@ if uploaded_file is not None:
     else:
         confidence = (1 - probability) * 100
         st.error(f"❌ **This is NOT a Voter ID** ({confidence:.2f}%)")
+# ... inside your app.py ...
+    
+    # Predict
+    prediction = model.predict(img_array)
+    probability = float(prediction[0][0])
+    
+    # Convert probability to percentage
+    confidence_score = probability * 100
+
+    st.write("---")
+    st.subheader("Analysis Result:")
+
+    # --- THE LOGIC FIX ---
+    # We set a HIGH THRESHOLD (e.g., 0.85 or 85%)
+    # Even if the model thinks it's 70% likely, we reject it to be safe.
+    
+    HIGH_THRESHOLD = 0.85  # 85% confidence required
+
+    if probability > HIGH_THRESHOLD:
+        st.success(f"✅ **Verified: This IS a Voter ID Card**")
+        st.progress(int(confidence_score))
+        st.write(f"Model Confidence: {confidence_score:.2f}%")
+        st.write("The model is very sure this is a Ghana Voter ID.")
+    else:
+        # This catches "Other" (low probability) AND "Unsure" images
+        st.error(f"❌ **Rejected: NOT a Voter ID Card**")
+        
+        # specific message depending on how low the score is
+        if probability > 0.5:
+             st.warning(f"⚠️ The model sees some resemblance ({confidence_score:.2f}%), but not enough to be verified. It might be a blurry image or a different type of card.")
+        else:
+             st.write(f"Confidence score is very low ({confidence_score:.2f}%). This looks like a random object or person.")
